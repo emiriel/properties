@@ -3,7 +3,7 @@
  *
  * Description:  
  *
- * Copyright (c) 2016 Erwann Miriel, erwann.miriel@gmail.com 
+ * Copyright (c) 2017 Erwann Miriel, erwann.miriel@gmail.com
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -26,8 +26,6 @@
 #include "include/utils.h"
 #include "include/logging.h"
 
-int NULL_CHAR_SPACE = 1;
-
 int check_null(int nb_args, ...) {
   va_list arguments;
   int i;
@@ -35,7 +33,7 @@ int check_null(int nb_args, ...) {
   va_start(arguments, nb_args);
   
   for(i = 0; i < nb_args; i++) {
-    ptr = (void *) va_arg(arguments, void*);
+    ptr = va_arg(arguments, void*);
     if(ptr == NULL) {
       return FUNC_FAILURE;
     }
@@ -44,7 +42,7 @@ int check_null(int nb_args, ...) {
   return FUNC_SUCCESS;
 }
 
-int inflate(void **inflatable, int new_size, int ptrsize) {
+int inflate(void **inflatable, int new_size, size_t ptrsize) {
   void * new_inflatable;
   new_inflatable = realloc(*inflatable, new_size * ptrsize);
   if(new_inflatable == NULL) {
@@ -55,7 +53,7 @@ int inflate(void **inflatable, int new_size, int ptrsize) {
   return FUNC_SUCCESS;
 }
 
-int manage_size(void ** inflatable, int cur_size, int *p_max_size, int step, int ptrsize) {
+int manage_size(void ** inflatable, int cur_size, int *p_max_size, int step, size_t ptrsize) {
   int ret = FUNC_SUCCESS;
   int max_size;
 

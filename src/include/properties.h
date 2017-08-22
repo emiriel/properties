@@ -21,13 +21,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef PROPERTIES_H_INCLUDED
-#define PROPERTIES_H_INCLUDED
+#ifndef PROPERTIES_H
+#define PROPERTIES_H
 
 /**
  * @brief Function pointer to delete a valueholder's value from memory.
  */
-typedef void (_dealloc_func_t) (void *);
+typedef void (_free_func_t) (void *);
 
 /**
  * @brief Contains a value (can be any type of data) and a deallocation function.
@@ -66,7 +66,7 @@ properties_t *properties_new();
  *
  * @return the pointer of the created property if succeeded, NULL otherwise
  */
-property_t *properties_new_property(char *key, void *value, _dealloc_func_t *dealloc);
+property_t *properties_property_new(char *key, void *value, _free_func_t *dealloc);
 
 /**
  * @brief Adds a property to the properties holder.
@@ -76,7 +76,7 @@ property_t *properties_new_property(char *key, void *value, _dealloc_func_t *dea
  *
  * @return 0 if succeeded, -1 otherwise
  */
-int properties_add_property(property_t *property, properties_t *properties);
+int properties_property_add(property_t *property, properties_t *properties);
 
 /**
  * @brief fills an array of char containing all properties' names from the properties holder
@@ -86,7 +86,7 @@ int properties_add_property(property_t *property, properties_t *properties);
  *
  * @return 0 if succeeded, -1 otherwise
  */
-int properties_get_keys(char ***keys, properties_t *properties);
+int properties_get_keys(char ***p_keys, properties_t *properties);
 
 /**
  * @brief Gets property by name in the properties holder.
@@ -108,7 +108,7 @@ void* properties_get_value(char *key, properties_t *properties);
  * @return 0 if succeeded, -1 otherwise
  *
  */
-int properties_remove_property(char *key, properties_t *properties);
+int properties_property_free(char *key, properties_t *properties);
 
 /**
  * @brief frees the properties holder from memory

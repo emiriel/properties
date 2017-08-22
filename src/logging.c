@@ -1,7 +1,7 @@
 /*
  * Filename:  logging.c
  *
- * Description:  Source file of logging functions
+ * Description:  Contains the logging functions
  *
  * Copyright (c) 2017 Erwann Miriel, erwann.miriel@gmail.com
  *

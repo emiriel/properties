@@ -19,8 +19,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
  
-#ifndef LOGGING_H_INCLUDED
-#define LOGGING_H_INCLUDED
+#ifndef PROPERTIES_LOGGING_H
+#define PROPERTIES_LOGGING_H
 
 void log_error(char *logstring, ...);
 void log_warning(char *logstring, ...);

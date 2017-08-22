@@ -3,7 +3,7 @@
  *
  * Description:  
  *
- * Copyright (c) 2016 Erwann Miriel, erwann.miriel@gmail.com 
+ * Copyright (c) 2017 Erwann Miriel, erwann.miriel@gmail.com
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -27,12 +27,12 @@
 
 static int DEFAULT_CAPACITY = 500;
 
-_stringbuilder_t * sb_init() {
+_stringbuilder_t * sb_new() {
   _stringbuilder_t * sb = malloc(sizeof(_stringbuilder_t));
   if(sb == NULL) {
     goto error;
   }
-  sb->string = malloc(sizeof(char) * (DEFAULT_CAPACITY + NULL_CHAR_SPACE));
+  sb->string = malloc(sizeof(char) * (DEFAULT_CAPACITY + NULL_CHAR_OFFSET));
   if(sb->string == NULL) {
     free(sb);
     goto error;
@@ -42,11 +42,11 @@ _stringbuilder_t * sb_init() {
   return sb;
 
  error:
-  log_error("sb_init");
+  log_error("sb_new");
   return NULL;
 }
 
-void sb_close(_stringbuilder_t *sb) {
+void sb_free(_stringbuilder_t *sb) {
   free(sb->string);
   free(sb);
 }
@@ -56,9 +56,9 @@ int sb_appendchar(_stringbuilder_t *sb, char c) {
   sb->size++;
   if(sb->size == sb->capacity) {
     sb->capacity += DEFAULT_CAPACITY;
-    sb->string = realloc(sb->string, sizeof(*(sb->string)) * (sb->capacity + NULL_CHAR_SPACE));
+    sb->string = realloc(sb->string, sizeof(*(sb->string)) * (sb->capacity + NULL_CHAR_OFFSET));
     if(sb->string == NULL) {
-      sb_close(sb);
+      sb_free(sb);
       log_error("sb_appendchar");
       return -1;
     }

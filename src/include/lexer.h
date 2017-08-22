@@ -20,8 +20,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef LEXER_H
-#define LEXER_H
+#ifndef PROPERTIES_LEXER_H
+#define PROPERTIES_LEXER_H
 #include "properties.h"
 #include "scanner.h"
 
@@ -51,14 +51,14 @@ typedef struct _lexer lexer_t;
  * @return the newly created lexer if succeeded, NULL otherwise
  *
  */
-lexer_t *lexer_init(char *filename, properties_t *properties);
+lexer_t *lexer_new(char *filename, properties_t *properties);
 
 /**
  * @brief Deletes the lexer from memory.
  *
  * @param lexer the lexer to delete
  */
-void lexer_close(lexer_t *lexer);
+void lexer_free(lexer_t *lexer);
 
 /**
  * @brief Analyses the file and builds the properties found in the file.

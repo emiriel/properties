@@ -99,7 +99,7 @@ int run_tests() {
   log_info("Testing failing initializations...");
   for(int i = 0; i < category.size; i++) {
     log_info(category.tests[i]->description);
-    lexer = lexer_init(category.tests[i]->filename, category.tests[i]->properties);
+    lexer = lexer_new(category.tests[i]->filename, category.tests[i]->properties);
     if(lexer == category.reference) {
       log_info("OK !");
     } else {
@@ -120,32 +120,31 @@ int run_tests() {
     if(properties == NULL) {
       log_error("Unable to init properties !");
       global_nb_errors++;
-    }
-
-    lexer = lexer_init(category.tests[i]->filename, properties);
-    if(lexer == NULL) {
-      log_error("Unable to init lexer !");
-      global_nb_errors++;
     } else {
-      log_info("Begin analysis...");
-      ret = lexer_analyze(lexer);
-      if(ret == ((__intptr_t) category.reference)) {
-        log_info("OK !");
-      } else {
-        log_error("Error !");
+      lexer = lexer_new(category.tests[i]->filename, properties);
+      if (lexer == NULL) {
+        log_error("Unable to init lexer !");
         global_nb_errors++;
+      } else {
+        log_info("Begin analysis...");
+        ret = lexer_analyze(lexer);
+        if (ret == ((__intptr_t) category.reference)) {
+          log_info("OK !");
+        } else {
+          log_error("Error !");
+          global_nb_errors++;
+        }
+        lexer_free(lexer);
       }
+      properties_free(properties);
     }
-
-    properties_free(properties);
-    lexer_close(lexer);
   }
   log_info("Analysis tests finished.");
 
   properties = properties_new();
 
   log_info("Testing working case...");
-  lexer = lexer_init("tests/good.properties", properties);
+  lexer = lexer_new("tests/good.properties", properties);
   if(lexer == NULL) {
     log_error("Lexer initialization failed !");
     global_nb_errors++;
@@ -177,7 +176,7 @@ int run_tests() {
   cur_props_size = nb_keys;
   for(int i = 0; i < nb_keys; i++) {
     printf("%s => '%s'\n", keys[i], (char *) properties_get_value(keys[i], properties));
-    properties_remove_property(keys[i], properties);
+    properties_property_free(keys[i], properties);
     cur_props_size--;
     if(properties->size != cur_props_size) {
       log_error("error during remove properties, properties size: %d, expected size: %d", properties->size, cur_props_size);
@@ -194,7 +193,7 @@ free_keys:
   free(keys);
 
 close_lexer:
-  lexer_close(lexer);
+  lexer_free(lexer);
 
 free_properties:
   properties_free(global_properties);

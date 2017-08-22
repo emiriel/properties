@@ -21,8 +21,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef STRINGBUILDER_H
-#define STRINGBUILDER_H
+#ifndef PROPERTIES_STRINGBUILDER_H
+#define PROPERTIES_STRINGBUILDER_H
 
 /**
  * Contains pieces of string to concatenate.
@@ -40,14 +40,14 @@ struct _stringbuilder {
  *
  * @return A new stringbuilder if succeeded, NULL otherwise
  */
-_stringbuilder_t * sb_init();
+_stringbuilder_t * sb_new();
 
 /**
  * Frees a stringbuilder from memory.
  *
  * @param sb the stringbuilder to free
  */
-void sb_close(_stringbuilder_t *sb);
+void sb_free(_stringbuilder_t *sb);
 /**
  * Appends a char to a stringbuilder.
  *

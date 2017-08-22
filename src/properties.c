@@ -1,9 +1,9 @@
 /*
- * Filename:  
+ * Filename:  properties.c
  *
- * Description:  
+ * Description:  Contains all functions related to the properties
  *
- * Copyright (c) 2016 Erwann Miriel, erwann.miriel@gmail.com 
+ * Copyright (c) 2017 Erwann Miriel, erwann.miriel@gmail.com
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -23,23 +23,16 @@
 #include <stdlib.h>
 #include <string.h>
 
-#ifdef ILOG_SUPPORT
-#include <ilogger.h>
-#else
 #include "include/logging.h"
-#endif
 
 #include "include/properties.h"
 #include "include/utils.h"
 
 #define PROPERTIES_STEP 10
 
-#define FUNC_FAILURE -1
-#define FUNC_SUCCESS 0
-
 struct _valueholder {
     void *value;
-    _dealloc_func_t *_dealloc;
+    _free_func_t *_dealloc;
 };
 
 struct _property {
@@ -47,7 +40,7 @@ struct _property {
     valueholder_t valueholder;
 };
 
-/** @brief Finds property by name in the properties holder passed in parameter.
+/** @brief Finds a property by its name in a properties holder.
  *
  * @param propertiesholder the properties container
  * @param key the name of the property to find
@@ -87,33 +80,33 @@ properties_t *properties_new() {
   props = malloc(sizeof(*props));
   if(props == NULL) {
     perror("properties_new: contents");
-    goto errorProps;
+    goto exit_error;
   }
   props->contents = malloc(PROPERTIES_STEP * sizeof(*(props->contents)));
   if(props->contents == NULL) {
     perror("properties_new: properties");
-    goto errorContents;
+    goto free_props;
   }
   props->capacity = PROPERTIES_STEP;
   props->size = 0;
 
   return props;
 
-  errorContents:
+free_props:
   free(props);
-  errorProps:
+exit_error:
   return NULL;
 }
 
-property_t * properties_new_property(char *key, void *value, _dealloc_func_t *dealloc) {
+property_t * properties_property_new(char *key, void *value, _free_func_t *dealloc) {
   if(check_null(3, key, value, dealloc) != FUNC_SUCCESS) {
-    log_error("properties_new_property : key or value is NULL");
+    log_error("properties_property_new : key or value is NULL");
   }
 
   property_t * property = malloc(sizeof(*property));
 
   if (property == NULL) {
-    log_error("properties_new_property : allocation failed");
+    log_error("properties_property_new : allocation failed");
     return NULL;
   }
 
@@ -123,51 +116,12 @@ property_t * properties_new_property(char *key, void *value, _dealloc_func_t *de
   return property;
 }
 
-int properties_add_property(property_t *prop, properties_t *props) {
-  int max;
-  
-  if(props == NULL || prop == NULL) {
-    log_error("properties_add_property : structure or element is NULL");
-    return FUNC_FAILURE;
-  }
-  
-  max = props->size;
-  props->size++;
-  props->contents[max] = prop;
-  return manage_size((void **) props->contents, props->size, &(props->capacity), PROPERTIES_STEP, sizeof(*(props->contents)));
-}
-
-int properties_get_keys(char ***keys, properties_t *props) {
-  int i;
-  char **theKeys;
-
-  *keys = malloc(props->size * sizeof(*keys));
-  theKeys = *keys;
-  if(theKeys == NULL) {
-    return FUNC_FAILURE;
-  }
-
-  for (i = 0; i < props->size; i++) {
-    theKeys[i] = props->contents[i]->key;
-  }
-
-  return i;
-}
-
-void *properties_get_value(char *key, properties_t *props) {
-  int i = properties_find_property(key, props);
-  if (i != -1) {
-    return props->contents[i]->valueholder.value;
-  }
-  return NULL;
-}
-
-int properties_remove_property(char *key, properties_t *properties) {
+int properties_property_free(char *key, properties_t *properties) {
   int idx, max;
-  property_t *aProperty;
+  property_t *a_property;
 
   if(check_null(2, properties, key)) {
-    log_error("properties_remove_property : structure or key is null");
+    log_error("properties_property_free : structure or key is null");
     return FUNC_FAILURE;
   }
 
@@ -176,8 +130,8 @@ int properties_remove_property(char *key, properties_t *properties) {
     return FUNC_FAILURE;
   }
 
-  aProperty = properties->contents[idx];
-  if(properties_free_property(aProperty) != 0) {
+  a_property = properties->contents[idx];
+  if(properties_free_property(a_property) != 0) {
     return FUNC_FAILURE;
   }
 
@@ -202,3 +156,41 @@ void properties_free(properties_t *props) {
   free(props);
 }
 
+int properties_property_add(property_t *prop, properties_t *props) {
+  int max;
+
+  if(props == NULL || prop == NULL) {
+    log_error("properties_property_add : structure or element is NULL");
+    return FUNC_FAILURE;
+  }
+
+  max = props->size;
+  props->size++;
+  props->contents[max] = prop;
+  return manage_size((void **) props->contents, props->size, &(props->capacity), PROPERTIES_STEP, sizeof(*(props->contents)));
+}
+
+int properties_get_keys(char ***p_keys, properties_t *props) {
+  int i;
+  char **deref_keys;
+
+  *p_keys = malloc(props->size * sizeof(*p_keys));
+  deref_keys = *p_keys;
+  if(deref_keys == NULL) {
+    return FUNC_FAILURE;
+  }
+
+  for (i = 0; i < props->size; i++) {
+    deref_keys[i] = props->contents[i]->key;
+  }
+
+  return i;
+}
+
+void *properties_get_value(char *key, properties_t *props) {
+  int i = properties_find_property(key, props);
+  if (i != -1) {
+    return props->contents[i]->valueholder.value;
+  }
+  return NULL;
+}

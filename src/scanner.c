@@ -3,7 +3,7 @@
  *
  * Description:  
  *
- * Copyright (c) 2016 Erwann Miriel, erwann.miriel@gmail.com 
+ * Copyright (c) 2017 Erwann Miriel, erwann.miriel@gmail.com
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -31,55 +31,6 @@
 
 static int UNICODE_OFFSET = 2;
 static int UNICODE_MAX_SIZE = 8;
-
-_scanner_t * scanner_init(char *filename) {
-  _scanner_t *scanner;
-  FILE *file;
-
-  file = fopen(filename, "r");
-  if(file == NULL) {
-    goto log_error;
-  }
-
-  scanner = malloc(sizeof(*scanner));
-  if(scanner == NULL) {
-    goto close_file;
-  }
-
-  scanner->filename = malloc(sizeof(char) * strlen(filename) + NULL_CHAR_SPACE);
-  if(scanner->filename == NULL) {
-    goto dealloc_scanner;
-  }
-
-  if(strcpy(scanner->filename, filename) == NULL) {
-    goto dealloc_filename;
-  }
-
-  scanner->file = file;
-  scanner->current_line = 1;
-  scanner->current_col = 1;
-  return scanner;
-
-dealloc_filename:
-  free(scanner->filename);
-
-close_file:
-  fclose(file);
-
-dealloc_scanner:
-  free(scanner);
-
-log_error:
-  log_error("scanner_init");
-
-  return NULL;
-}
-
-void scanner_close(_scanner_t *scanner) {
-  fclose(scanner->file);
-  free(scanner->filename);
-  free(scanner);
-}
 
 static int is_alnum(char c) {
   return isalnum((int) c);
@@ -140,39 +91,11 @@ static void unget_char(char c, _scanner_t * scanner) {
   ungetc(c, scanner->file);
 }
 
-static _token_t * token_init(int nb_chars) {
-  int size = 0;
-
-  _token_t *tok = malloc(sizeof(_token_t));
-  if (tok == NULL) {
-    return NULL;
-  }
-
-  if (nb_chars > 0) {
-    size = nb_chars + NULL_CHAR_SPACE; /* adding space for '\0' at the end of the string */
-    tok->value = malloc(sizeof(char) * size);
-    if (tok->value == NULL) {
-      free(tok);
-      return NULL;
-    }
-  }
-  tok->size = size;
-  
-  return tok;
-}
-
-void token_free(_token_t * tok) {
-  if(tok->value != NULL) {
-    free(tok->value);
-  }
-  free(tok);
-}
-
 static _token_t * scanGeneric(_scanner_t * scanner, _token_type type, int (*checker)(char)) {
   char c;
   unsigned int size = 0;
   _token_t *tok;
-  _stringbuilder_t * sb = sb_init();
+  _stringbuilder_t * sb = sb_new();
   if(sb == NULL ) {
     goto error;
   }
@@ -187,19 +110,19 @@ static _token_t * scanGeneric(_scanner_t * scanner, _token_type type, int (*chec
   }
   unget_char(c, scanner);
   
-  tok = token_init(size);
+  tok = token_new(size);
   if(tok == NULL) {
     goto free_sb_error;
   }
   
   tok->type = type;
   sb_to_str(tok->value, sb);
-  sb_close(sb);
+  sb_free(sb);
   
   return tok;
   
 free_sb_error:
-  sb_close(sb);
+  sb_free(sb);
 error:
   log_error("scanGeneric");
   return NULL;
@@ -208,7 +131,7 @@ error:
 static _token_t * scanGenChar(_scanner_t * scanner, _token_type type) {
   _token_t *tok;
   
-  tok = token_init(1);
+  tok = token_new(1);
   if(tok == NULL) {
     goto error;
   }
@@ -227,7 +150,7 @@ static _token_t * scanWhitespace(_scanner_t * scanner) {
 
 static _token_t * scanUnicodeChar(_scanner_t * scanner) {
   int size, i;
-  char workValue[UNICODE_MAX_SIZE + NULL_CHAR_SPACE];
+  char workValue[UNICODE_MAX_SIZE + NULL_CHAR_OFFSET];
   char c;
   _token_t *tok;
   
@@ -245,7 +168,7 @@ static _token_t * scanUnicodeChar(_scanner_t * scanner) {
   workValue[size] = '\0';
   unget_char(c, scanner);
 
-  tok = token_init(size);
+  tok = token_new(size);
   if(tok == NULL) {
     goto error;
   }
@@ -266,7 +189,7 @@ static _token_t * scanEscapedNewline(_scanner_t * scanner) {
   
   c = get_char(scanner);
   if(c == '\n') {
-    tok = token_init(1);
+    tok = token_new(1);
     if(tok == NULL) {
       goto error;
     }
@@ -276,7 +199,7 @@ static _token_t * scanEscapedNewline(_scanner_t * scanner) {
   } else {
     c = (char) fgetc(scanner->file);
     if(c == '\n') {
-      tok = token_init(2);
+      tok = token_new(2);
       if(tok == NULL) {
         goto error;
       }
@@ -287,7 +210,7 @@ static _token_t * scanEscapedNewline(_scanner_t * scanner) {
     } else {
       ungetc(c, scanner->file);
       
-      tok = token_init(1);
+      tok = token_new(1);
       if(tok == NULL) {
         goto error;
       }
@@ -311,20 +234,21 @@ static _token_t * scanEscapedChars(_scanner_t * scanner) {
   c = get_char(scanner);
   if(c == 'u') {
     return scanUnicodeChar(scanner);
-  } else if(is_newline(c)) {
+  }
+  if(is_newline(c)) {
     unget_char(c, scanner);
     return scanEscapedNewline(scanner);
-  } else {
-    tok = token_init(2);
-    if(tok == NULL) {
-      return NULL;
-    }
-    
-    tok->type = TOK_ESCAPED_CHAR;
-    tok->value[0] = '\\';
-    tok->value[1] = c;
-    tok->value[2] = '\0';
   }
+
+  tok = token_new(2);
+  if(tok == NULL) {
+    return NULL;
+  }
+
+  tok->type = TOK_ESCAPED_CHAR;
+  tok->value[0] = '\\';
+  tok->value[1] = c;
+  tok->value[2] = '\0';
   return tok;
 }
 
@@ -342,10 +266,6 @@ static _token_t * scanPonct(_scanner_t * scanner) {
 
 static _token_t * scanAssign(_scanner_t * scanner) {
   return scanGenChar(scanner, TOK_ASSIGN);
-}
-
-static _token_t * scan_other(_scanner_t *scanner) {
-  return scanGenChar(scanner,TOK_OTHER);
 }
 
 static _token_t * scanComment(_scanner_t * scanner) {
@@ -378,32 +298,62 @@ _token_t * scanner_scan(_scanner_t *scanner) {
   } else if (is_comment(c)) {
     tok = scanComment(scanner);
   } else if (is_eof(c)) {
-    tok = token_init(0);
+    tok = token_new(0);
     tok->value = NULL;
     tok->type = TOK_EOF;
   } else {
     unget_char(c, scanner);
-    tok = scan_other(scanner);
   }
 
   return tok;
 }
 
-int token_print(char *str, _token_t token) {
-  int ret = 0;
-  switch(token.type) {
-    case TOK_EOF: ret = sprintf(str, "[end of file]"); break;
-    case TOK_WS: ret = sprintf(str, "'%s'", token.value); break;
-    case TOK_ESCAPED_CHAR: ret = sprintf(str, "'%s'", token.value); break;
-    case TOK_UNICODE_CHAR: ret = sprintf(str, "'%s'", token.value); break;
-    case TOK_NEWLINE: ret = sprintf(str, "[newline]"); break;
-    case TOK_ALNUM: ret = sprintf(str, "'%s'", token.value); break;
-    case TOK_PONCT: ret = sprintf(str, "'%s'", token.value); break;
-    case TOK_ASSIGN: ret = sprintf(str, "'%s'", token.value); break;
-    case TOK_OTHER: ret = sprintf(str, "'%s'", token.value); break;
-    case TOK_COMMENT: ret = sprintf(str, "'%s'", token.value); break;
-    case TOK_NULL: ret = sprintf(str, "[nothing]"); break;
-    default: sprintf(str, "unknown token type %d", token.type); ret = FUNC_FAILURE; break;
+_scanner_t * scanner_new(char *filename) {
+  _scanner_t *scanner;
+  FILE *file;
+
+  file = fopen(filename, "r");
+  if(file == NULL) {
+    goto log_error;
   }
-  return ret;
+
+  scanner = malloc(sizeof(*scanner));
+  if(scanner == NULL) {
+    goto close_file;
+  }
+
+  scanner->filename = malloc(sizeof(char) * strlen(filename) + NULL_CHAR_OFFSET);
+  if(scanner->filename == NULL) {
+    goto dealloc_scanner;
+  }
+
+  if(strcpy(scanner->filename, filename) == NULL) {
+    goto dealloc_filename;
+  }
+
+  scanner->file = file;
+  scanner->current_line = 1;
+  scanner->current_col = 1;
+  return scanner;
+
+  dealloc_filename:
+  free(scanner->filename);
+
+  close_file:
+  fclose(file);
+
+  dealloc_scanner:
+  free(scanner);
+
+  log_error:
+  log_error("scanner_new");
+
+  return NULL;
 }
+
+void scanner_free(_scanner_t *scanner) {
+  fclose(scanner->file);
+  free(scanner->filename);
+  free(scanner);
+}
+
